@@ -7,8 +7,11 @@ class GeminiService {
   // Default API key for high school career guidance AI
   static const String _defaultApiKey = '';
   static const String _envApiKey = String.fromEnvironment('GEMINI_API_KEY');
-  static String get _apiKey => _envApiKey.isNotEmpty ? _envApiKey : _defaultApiKey;
-  static bool get isApiKeyConfigured => _apiKey.isNotEmpty;
+  static const String _proxyUrl = String.fromEnvironment('GEMINI_PROXY_URL');
+  static String get _apiKey =>
+      _envApiKey.isNotEmpty ? _envApiKey : _defaultApiKey;
+  static bool get isApiKeyConfigured =>
+      _proxyUrl.isNotEmpty || _apiKey.isNotEmpty;
 
   // Gemini REST API endpoint (compatible with Flutter Web / CORS)
   static String get _endpoint =>
@@ -70,7 +73,7 @@ ACTIVE LISTENING & ADAPTABILITY RULES (CRITICAL):
         contents.add({
           'role': msg.isUser ? 'user' : 'model',
           'parts': [
-            {'text': msg.text}
+            {'text': msg.text},
           ],
         });
       }
@@ -79,7 +82,7 @@ ACTIVE LISTENING & ADAPTABILITY RULES (CRITICAL):
       contents.add({
         'role': 'user',
         'parts': [
-          {'text': userPrompt}
+          {'text': userPrompt},
         ],
       });
 
@@ -87,14 +90,11 @@ ACTIVE LISTENING & ADAPTABILITY RULES (CRITICAL):
       final body = jsonEncode({
         'systemInstruction': {
           'parts': [
-            {'text': systemText}
-          ]
+            {'text': systemText},
+          ],
         },
         'contents': contents,
-        'generationConfig': {
-          'temperature': 0.7,
-          'maxOutputTokens': 1024,
-        },
+        'generationConfig': {'temperature': 0.7, 'maxOutputTokens': 1024},
       });
 
       final response = await http
@@ -107,11 +107,16 @@ ACTIVE LISTENING & ADAPTABILITY RULES (CRITICAL):
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final rawText = data['candidates']?[0]?['content']?['parts']?[0]?['text'] as String?;
+        final rawText =
+            data['candidates']?[0]?['content']?['parts']?[0]?['text']
+                as String?;
 
         if (rawText != null && rawText.trim().isNotEmpty) {
           // Strip out any asterisks or hashes to strictly fulfill non-robotic formatting request
-          final cleanedText = rawText.replaceAll('*', '').replaceAll('#', '').trim();
+          final cleanedText = rawText
+              .replaceAll('*', '')
+              .replaceAll('#', '')
+              .trim();
           return CareerBotResult(
             category: 'GeminiAI',
             text: cleanedText,
@@ -123,7 +128,8 @@ ACTIVE LISTENING & ADAPTABILITY RULES (CRITICAL):
       } else {
         // Parse API error message
         final errData = jsonDecode(response.body);
-        final errMsg = errData['error']?['message'] ?? 'HTTP ${response.statusCode}';
+        final errMsg =
+            errData['error']?['message'] ?? 'HTTP ${response.statusCode}';
         throw Exception('Gemini API Error: $errMsg');
       }
     } catch (e) {
@@ -140,8 +146,8 @@ ACTIVE LISTENING & ADAPTABILITY RULES (CRITICAL):
     final fallback = CareerBotService.getResponse(userPrompt, localeCode);
     final notice = showNotice
         ? isVi
-            ? '\n\n*(Lưu ý: Đang sử dụng chế độ tư vấn nội địa do gián đoạn kết nối Gemini API)*'
-            : '\n\n*(Notice: Using local counselor mode — Gemini API connection unavailable)*'
+              ? '\n\n*(Lưu ý: Đang sử dụng chế độ tư vấn nội địa do gián đoạn kết nối Gemini API)*'
+              : '\n\n*(Notice: Using local counselor mode — Gemini API connection unavailable)*'
         : '';
 
     return CareerBotResult(
@@ -153,23 +159,63 @@ ACTIVE LISTENING & ADAPTABILITY RULES (CRITICAL):
 
   static List<String> _generateFollowUps(String userPrompt, bool isVi) {
     final lower = userPrompt.toLowerCase();
-    if (lower.contains('stem') || lower.contains('công nghệ') || lower.contains('tech') || lower.contains('it')) {
+    if (lower.contains('stem') ||
+        lower.contains('công nghệ') ||
+        lower.contains('tech') ||
+        lower.contains('it')) {
       return isVi
-          ? ['Trường đại học đào tạo CNTT uy tín?', 'Học CNTT cần điểm khối thi nào?', 'Cơ hội việc làm ngành AI?']
-          : ['Top Computer Science Universities?', 'Which subject combos for IT?', 'AI Career prospects?'];
+          ? [
+              'Trường đại học đào tạo CNTT uy tín?',
+              'Học CNTT cần điểm khối thi nào?',
+              'Cơ hội việc làm ngành AI?',
+            ]
+          : [
+              'Top Computer Science Universities?',
+              'Which subject combos for IT?',
+              'AI Career prospects?',
+            ];
     }
-    if (lower.contains('holland') || lower.contains('riasec') || lower.contains('tính cách')) {
+    if (lower.contains('holland') ||
+        lower.contains('riasec') ||
+        lower.contains('tính cách')) {
       return isVi
-          ? ['Nhóm Social (S) làm nghề gì?', 'Cách làm bài test Holland chuẩn?', 'Chọn ngành theo tính cách']
-          : ['Careers for Social (S) type?', 'How to take full Holland test?', 'Pick major by personality'];
+          ? [
+              'Nhóm Social (S) làm nghề gì?',
+              'Cách làm bài test Holland chuẩn?',
+              'Chọn ngành theo tính cách',
+            ]
+          : [
+              'Careers for Social (S) type?',
+              'How to take full Holland test?',
+              'Pick major by personality',
+            ];
     }
-    if (lower.contains('khối') || lower.contains('a00') || lower.contains('d01') || lower.contains('b00')) {
+    if (lower.contains('khối') ||
+        lower.contains('a00') ||
+        lower.contains('d01') ||
+        lower.contains('b00')) {
       return isVi
-          ? ['Điểm chuẩn khối A00 năm nay?', 'Khối D01 phù hợp ngành gì?', 'Chọn khối thi theo sở thích']
-          : ['Cut-off scores for A00?', 'Best majors for D01?', 'How to choose subjects by interest'];
+          ? [
+              'Điểm chuẩn khối A00 năm nay?',
+              'Khối D01 phù hợp ngành gì?',
+              'Chọn khối thi theo sở thích',
+            ]
+          : [
+              'Cut-off scores for A00?',
+              'Best majors for D01?',
+              'How to choose subjects by interest',
+            ];
     }
     return isVi
-        ? ['Tôi muốn tư vấn chọn khối thi THPT', 'Trắc nghiệm tính cách chọn ngành', 'Khối ngành Kinh tế & Marketing']
-        : ['Help me pick subject combinations', 'Personality tests for majors', 'Business & Marketing tracks'];
+        ? [
+            'Tôi muốn tư vấn chọn khối thi THPT',
+            'Trắc nghiệm tính cách chọn ngành',
+            'Khối ngành Kinh tế & Marketing',
+          ]
+        : [
+            'Help me pick subject combinations',
+            'Personality tests for majors',
+            'Business & Marketing tracks',
+          ];
   }
 }
