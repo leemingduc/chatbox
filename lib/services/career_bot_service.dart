@@ -17,6 +17,66 @@ class CareerBotService {
     final text = userMessage.toLowerCase().trim();
     final isVi = localeCode == 'vi';
 
+    // Challenge handling: Subject weakness / constraint
+    if (text.contains('yếu') || text.contains('kém') || text.contains('không giỏi') || text.contains('weak')) {
+      return CareerBotResult(
+        category: 'AdaptiveRefinement',
+        text: isVi
+            ? "💡 Tiếp thu phản hồi & Điều chỉnh Tổ hợp môn:\n\n"
+              "Hoàn toàn thấu hiểu! Nếu bạn chưa mạnh môn Vật Lý hoặc môn tự nhiên cụ thể nào, chúng ta hoàn toàn có thể linh hoạt chuyển sang các tổ hợp môn khác mà không ảnh hưởng tới định hướng ngành học:\n"
+              "🔹 Thay vì A00 (Toán-Lý-Hóa) hay A01 (Toán-Lý-Anh), bạn có thể chọn D07 (Toán-Hóa-Anh), D01 (Toán-Văn-Anh) hoặc C00 (Văn-Sử-Địa).\n"
+              "🔹 Rất nhiều ngành CNTT, Kinh tế, Truyền thông tại các trường xét tuyển khối D01 và D07 với điểm chuẩn phù hợp.\n\n"
+              "❓ Bạn tự tin nhất với 2-3 môn học nào hiện tại ở trường?"
+            : "💡 Adaptive Subject Track Adjustment:\n\n"
+              "Understood! If Physics or a specific science subject is not your strength, we can easily pivot to alternative subject combinations:\n"
+              "🔹 Instead of A00/A01, you can choose D07 (Math-Chem-Eng), D01 (Math-Lit-Eng), or C00 (Lit-Hist-Geo).\n"
+              "🔹 Many IT, Business, and Media programs offer admissions via D01 and D07 tracks.\n\n"
+              "❓ Which 2-3 subjects are your top strengths right now?",
+        followUps: isVi
+            ? [
+                "Ngành CNTT xét tuyển khối D07/D01?",
+                "Khối D01 gồm những ngành hot nào?",
+                "Cách tăng điểm môn Tiếng Anh nhanh nhất?"
+              ]
+            : [
+                "IT majors accepting D07/D01?",
+                "Top majors for D01 combo?",
+                "How to boost English score fast?"
+              ],
+      );
+    }
+
+    // Challenge handling: Geographical location constraint
+    if (text.contains('tphcm') || text.contains('hồ chí minh') || text.contains('miền nam') || text.contains('miền bắc') || text.contains('đà nẵng') || text.contains('hà nội')) {
+      return CareerBotResult(
+        category: 'AdaptiveLocation',
+        text: isVi
+            ? "📍 Cập nhật Danh sách Trường theo Khu vực:\n\n"
+              "Ghi nhận mong muốn địa lý của bạn! Dưới đây là danh sách các trường Đại học uy tín hàng đầu theo khu vực bạn quan tâm:\n"
+              "🏫 Tại TP.HCM & Miền Nam: ĐHQG TP.HCM (Bách Khoa, CNTT-UIT, KHTN), ĐH Kinh tế TP.HCM (UEH), ĐH Y Dược TP.HCM, ĐH Cần Thơ, ĐH Sư phạm Kỹ thuật.\n"
+              "🏫 Tại Hà Nội & Miền Bắc: ĐHQG Hà Nội, ĐH Bách Khoa Hà Nội (HUST), Kinh tế Quốc dân (NEU), Ngoại thương (FTU), Học viện Bưu chính Viễn thông.\n"
+              "🏫 Tại Miền Trung: ĐH Đà Nẵng (Bách Khoa, Kinh tế, Sư phạm).\n\n"
+              "❓ Bạn muốn tìm hiểu thêm về điểm chuẩn trường nào tại khu vực này?"
+            : "📍 Regional University Recommendations Updated:\n\n"
+              "Got it! Here are top-tier universities categorized by your target region in Vietnam:\n"
+              "🏫 HCMC & Southern Region: VNU-HCM (HCMUT, UIT, USSH), UEH, University of Medicine & Pharmacy HCMC, Can Tho University.\n"
+              "🏫 Hanoi & Northern Region: VNU-Hanoi, HUST, NEU, Foreign Trade University (FTU).\n"
+              "🏫 Central Region: University of Da Nang (DUT, DUE).\n\n"
+              "❓ Which specific university in this region would you like cut-off details for?",
+        followUps: isVi
+            ? [
+                "Điểm chuẩn ĐHQG TP.HCM năm nay?",
+                "Trường Đại học Bách Khoa TP.HCM xét khối nào?",
+                "Top trường Kinh tế hàng đầu Miền Nam?"
+              ]
+            : [
+                "Cut-off scores for VNU-HCM?",
+                "Admission tracks for HCMUT?",
+                "Top business schools in South Vietnam?"
+              ],
+      );
+    }
+
     if (text.contains('stem') || text.contains('công nghệ') || text.contains('it') || text.contains('tech') || text.contains('lập trình')) {
       return CareerBotResult(
         category: 'STEM',
