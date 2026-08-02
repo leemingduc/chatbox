@@ -1,0 +1,21 @@
+{
+  "@@locale": "vi",
+  "appTitle": "Tư Vấn Hướng Nghiệp",
+  "appSubtitle": "Tư vấn ngành học & định hướng cho học sinh THPT",
+  "welcomeTitle": "Chào mừng bạn đến với Chatbox Hướng Nghiệp! 👋",
+  "welcomeSubtitle": "Tôi là trợ lý AI sẵn sàng hỗ trợ học sinh THPT chọn ngành đại học, định hướng nghề nghiệp, chọn khối thi (A00, B00, C00, D01...) và khám phá bản thân.",
+  "typeMessageHint": "Nhập câu hỏi về ngành học, trường ĐH, khối thi...",
+  "send": "Gửi",
+  "suggestedTopicsTitle": "Chủ đề gợi ý phổ biến:",
+  "topicStem": "🔬 Ngành STEM & Công nghệ",
+  "topicArts": "🎨 Thiết kế & Truyền thông",
+  "topicBusiness": "💼 Kinh tế & Marketing",
+  "topicHolland": "🧩 Trắc nghiệm Holland (RIASEC)",
+  "topicSubjectCombo": "📚 Chọn khối thi & môn học THPT",
+  "disclaimer": "Trợ lý hướng nghiệp dành cho học sinh THPT • Thông tin mang tính tham khảo",
+  "languageSwitch": "🇺🇸 English",
+  "counselorName": "Tư Vấn Viên EduPath",
+  "onlineStatus": "Trực tuyến • Sẵn sàng hỗ trợ",
+  "clearChat": "Xóa cuộc trò chuyện",
+  "botGreeting": "Xin chào! Bạn đang là học sinh lớp mấy (10, 11 hay 12)? Bạn yêu thích môn học hoặc lĩnh vực nào nhất?"
+}

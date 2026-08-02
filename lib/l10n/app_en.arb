@@ -1,0 +1,21 @@
+{
+  "@@locale": "en",
+  "appTitle": "EduPath Guidance",
+  "appSubtitle": "High School Career & Major Counseling",
+  "welcomeTitle": "Welcome to EduPath Career Assistant! 👋",
+  "welcomeSubtitle": "I'm here to help high school students explore university majors, career opportunities, Subject Combinations (A00, B00, D01...), and personal interests.",
+  "typeMessageHint": "Ask about majors, universities, or careers...",
+  "send": "Send",
+  "suggestedTopicsTitle": "Popular Guidance Topics:",
+  "topicStem": "🔬 STEM & Tech Majors",
+  "topicArts": "🎨 Design & Media Careers",
+  "topicBusiness": "💼 Business & Marketing",
+  "topicHolland": "🧩 Holland RIASEC Personality Test",
+  "topicSubjectCombo": "📚 High School Subject Selection",
+  "disclaimer": "Career Assistant for High School Students • Educational Reference",
+  "languageSwitch": "🇻🇳 Tiếng Việt",
+  "counselorName": "EduPath Guidance AI",
+  "onlineStatus": "Online • Ready to help",
+  "clearChat": "Clear Conversation",
+  "botGreeting": "Hello! What grade are you in (10, 11, or 12)? What subjects or fields interest you the most?"
+}
