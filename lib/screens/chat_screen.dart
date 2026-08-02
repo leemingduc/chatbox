@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/chat_message.dart';
-import '../services/career_bot_service.dart';
+import '../services/gemini_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final Locale currentLocale;
@@ -95,12 +95,16 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _controller.clear();
     _scrollToBottom();
 
-    // Simulated AI response delay with loading state
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (!mounted) return;
-      final localeCode = widget.currentLocale.languageCode;
-      final botResult = CareerBotService.getResponse(text, localeCode);
+    // Call Gemini API with multi-turn conversation history
+    final localeCode = widget.currentLocale.languageCode;
+    final historyForAi = List<ChatMessage>.from(_messages);
 
+    GeminiService.generateResponse(
+      chatHistory: historyForAi,
+      userPrompt: text,
+      localeCode: localeCode,
+    ).then((botResult) {
+      if (!mounted) return;
       setState(() {
         _messages.add(
           ChatMessage(
@@ -279,14 +283,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF10B981),
+                        decoration: BoxDecoration(
+                          color: GeminiService.isApiKeyConfigured ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        l10n.onlineStatus,
+                        GeminiService.isApiKeyConfigured ? "Gemini 1.5 Flash • Active" : l10n.onlineStatus,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 11,
