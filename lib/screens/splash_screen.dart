@@ -10,14 +10,16 @@ class SplashScreen extends StatefulWidget {
   final VoidCallback onComplete;
   final Locale locale;
   final Function(Locale) onLanguageChanged;
-  final Widget Function() buildChatScreen;
+  final Widget Function()? buildChatScreen;
+  final Widget Function()? buildNextScreen;
 
   const SplashScreen({
     super.key,
     required this.onComplete,
     required this.locale,
     required this.onLanguageChanged,
-    required this.buildChatScreen,
+    this.buildChatScreen,
+    this.buildNextScreen,
   });
 
   @override
@@ -134,7 +136,8 @@ class _SplashScreenState extends State<SplashScreen>
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => widget.buildChatScreen(),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            (widget.buildNextScreen ?? widget.buildChatScreen!)(),
         transitionDuration: Duration.zero,
       ),
     );

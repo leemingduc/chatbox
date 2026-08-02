@@ -2,17 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/chat_message.dart';
+import '../models/user_account.dart';
+import '../services/auth_service.dart';
 import '../services/gemini_service.dart';
 import '../services/sound_service.dart';
+import 'login_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final Locale currentLocale;
   final Function(Locale) onLanguageChanged;
+  final UserAccount? currentUser;
 
   const ChatScreen({
     super.key,
     required this.currentLocale,
     required this.onLanguageChanged,
+    this.currentUser,
   });
 
   @override
@@ -251,6 +256,142 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
+  void _showAccountDialog() {
+    final user = widget.currentUser ?? AuthService().currentUser ?? UserAccount.guest();
+    final isVi = widget.currentLocale.languageCode == 'vi';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: user.isGuest ? const Color(0xFF10B981) : const Color(0xFF4F46E5),
+                child: Text(
+                  user.isGuest ? '👤' : user.name.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.name,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: user.isGuest
+                            ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                            : const Color(0xFF4F46E5).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        user.isGuest
+                            ? (isVi ? 'Tài khoản Khách' : 'Guest Account')
+                            : (isVi ? 'Tài khoản Chính thức' : 'Registered Account'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: user.isGuest ? const Color(0xFF10B981) : const Color(0xFF4F46E5),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (user.email != null) ...[
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.email_outlined),
+                  title: Text(isVi ? 'Email' : 'Email'),
+                  subtitle: Text(user.email!),
+                ),
+              ],
+              if (user.grade != null) ...[
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.school_outlined),
+                  title: Text(isVi ? 'Khối lớp' : 'Grade Level'),
+                  subtitle: Text(user.grade!),
+                ),
+              ],
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.security_outlined),
+                title: Text(isVi ? 'Quyền truy cập' : 'Access Level'),
+                subtitle: Text(
+                  isVi
+                      ? 'Đầy đủ 100% tính năng AI tư vấn hướng nghiệp'
+                      : 'Full 100% access to Career Guidance AI',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            if (user.isGuest)
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _logoutAndGoToLogin();
+                },
+                icon: const Icon(Icons.upgrade_rounded, color: Color(0xFF4F46E5)),
+                label: Text(
+                  isVi ? 'Đăng nhập tài khoản chính' : 'Upgrade Account',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _logoutAndGoToLogin();
+              },
+              child: Text(
+                isVi ? 'Đăng xuất' : 'Log Out',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _logoutAndGoToLogin() async {
+    await AuthService().logout();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => LoginScreen(
+          locale: widget.currentLocale,
+          onLanguageChanged: widget.onLanguageChanged,
+          onLoginSuccess: (UserAccount user) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  currentLocale: widget.currentLocale,
+                  onLanguageChanged: widget.onLanguageChanged,
+                  currentUser: user,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -310,6 +451,28 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           ],
         ),
         actions: [
+          // Account Profile Chip Button
+          IconButton(
+            icon: CircleAvatar(
+              radius: 14,
+              backgroundColor: (widget.currentUser?.isGuest ?? true)
+                  ? const Color(0xFF10B981)
+                  : Colors.white,
+              child: Text(
+                (widget.currentUser?.isGuest ?? true)
+                    ? '👤'
+                    : (widget.currentUser?.name.substring(0, 1).toUpperCase() ?? 'U'),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: (widget.currentUser?.isGuest ?? true) ? Colors.white : const Color(0xFF4F46E5),
+                ),
+              ),
+            ),
+            tooltip: widget.currentLocale.languageCode == 'vi' ? 'Thông tin tài khoản' : 'Account Info',
+            onPressed: _showAccountDialog,
+          ),
+
           // Subject Combo Quick Modal Button
           IconButton(
             icon: const Icon(Icons.menu_book_rounded, color: Colors.white),

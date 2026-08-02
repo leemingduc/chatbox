@@ -4,6 +4,9 @@ import 'screens/splash_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 
+import 'screens/login_screen.dart';
+import 'models/user_account.dart';
+
 void main() {
   runApp(const CareerGuidanceApp());
 }
@@ -56,14 +59,25 @@ class _CareerGuidanceAppState extends State<CareerGuidanceApp> {
         useMaterial3: true,
       ),
       themeMode: ThemeMode.system,
-      // SplashScreen is the entry point; it transitions to ChatScreen
+      // SplashScreen is the entry point; it transitions to LoginScreen
       home: SplashScreen(
         onComplete: () {},
         locale: _locale,
         onLanguageChanged: _setLocale,
-        buildChatScreen: () => ChatScreen(
-          currentLocale: _locale,
+        buildNextScreen: () => LoginScreen(
+          locale: _locale,
           onLanguageChanged: _setLocale,
+          onLoginSuccess: (UserAccount user) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  currentLocale: _locale,
+                  onLanguageChanged: _setLocale,
+                  currentUser: user,
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
