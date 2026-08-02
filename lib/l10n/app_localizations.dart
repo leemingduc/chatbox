@@ -205,6 +205,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hello! What grade are you in (10, 11, or 12)? What subjects or fields interest you the most?'**
   String get botGreeting;
+
+  /// No description provided for @aiThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Counselor is typing...'**
+  String get aiThinking;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied answer to clipboard!'**
+  String get copiedToClipboard;
+
+  /// No description provided for @subjectComboModalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'📚 Subject Combination Explorer'**
+  String get subjectComboModalTitle;
+
+  /// No description provided for @riasecModalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'🧩 Holland Code (RIASEC)'**
+  String get riasecModalTitle;
+
+  /// No description provided for @wasHelpful.
+  ///
+  /// In en, this message translates to:
+  /// **'Was this advice helpful?'**
+  String get wasHelpful;
+
+  /// No description provided for @followUpPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested follow-up questions:'**
+  String get followUpPrompt;
+
+  /// No description provided for @exploreSubjectCombos.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore Subject Combos'**
+  String get exploreSubjectCombos;
+
+  /// No description provided for @exploreRiasec.
+  ///
+  /// In en, this message translates to:
+  /// **'RIASEC Personality Types'**
+  String get exploreRiasec;
 }
 
 class _AppLocalizationsDelegate

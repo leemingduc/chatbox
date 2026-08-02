@@ -65,4 +65,28 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get botGreeting =>
       'Xin chào! Bạn đang là học sinh lớp mấy (10, 11 hay 12)? Bạn yêu thích môn học hoặc lĩnh vực nào nhất?';
+
+  @override
+  String get aiThinking => 'AI Tư vấn đang soạn câu trả lời...';
+
+  @override
+  String get copiedToClipboard => 'Đã chép nội dung vào bộ nhớ tạm!';
+
+  @override
+  String get subjectComboModalTitle => '📚 Tra Cứu Khối Thi THPT';
+
+  @override
+  String get riasecModalTitle => '🧩 Mô Hình Tính Cách Holland (RIASEC)';
+
+  @override
+  String get wasHelpful => 'Câu trả lời này có hữu ích với bạn không?';
+
+  @override
+  String get followUpPrompt => 'Gợi ý câu hỏi tiếp theo:';
+
+  @override
+  String get exploreSubjectCombos => 'Khám phá khối thi';
+
+  @override
+  String get exploreRiasec => 'Nhóm tính cách RIASEC';
 }

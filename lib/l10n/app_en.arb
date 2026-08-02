@@ -17,5 +17,13 @@
   "counselorName": "EduPath Guidance AI",
   "onlineStatus": "Online • Ready to help",
   "clearChat": "Clear Conversation",
-  "botGreeting": "Hello! What grade are you in (10, 11, or 12)? What subjects or fields interest you the most?"
+  "botGreeting": "Hello! What grade are you in (10, 11, or 12)? What subjects or fields interest you the most?",
+  "aiThinking": "AI Counselor is typing...",
+  "copiedToClipboard": "Copied answer to clipboard!",
+  "subjectComboModalTitle": "📚 Subject Combination Explorer",
+  "riasecModalTitle": "🧩 Holland Code (RIASEC)",
+  "wasHelpful": "Was this advice helpful?",
+  "followUpPrompt": "Suggested follow-up questions:",
+  "exploreSubjectCombos": "Explore Subject Combos",
+  "exploreRiasec": "RIASEC Personality Types"
 }

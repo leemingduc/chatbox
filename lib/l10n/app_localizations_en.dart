@@ -64,4 +64,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get botGreeting =>
       'Hello! What grade are you in (10, 11, or 12)? What subjects or fields interest you the most?';
+
+  @override
+  String get aiThinking => 'AI Counselor is typing...';
+
+  @override
+  String get copiedToClipboard => 'Copied answer to clipboard!';
+
+  @override
+  String get subjectComboModalTitle => '📚 Subject Combination Explorer';
+
+  @override
+  String get riasecModalTitle => '🧩 Holland Code (RIASEC)';
+
+  @override
+  String get wasHelpful => 'Was this advice helpful?';
+
+  @override
+  String get followUpPrompt => 'Suggested follow-up questions:';
+
+  @override
+  String get exploreSubjectCombos => 'Explore Subject Combos';
+
+  @override
+  String get exploreRiasec => 'RIASEC Personality Types';
 }

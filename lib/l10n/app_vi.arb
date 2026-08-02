@@ -17,5 +17,13 @@
   "counselorName": "Tư Vấn Viên EduPath",
   "onlineStatus": "Trực tuyến • Sẵn sàng hỗ trợ",
   "clearChat": "Xóa cuộc trò chuyện",
-  "botGreeting": "Xin chào! Bạn đang là học sinh lớp mấy (10, 11 hay 12)? Bạn yêu thích môn học hoặc lĩnh vực nào nhất?"
+  "botGreeting": "Xin chào! Bạn đang là học sinh lớp mấy (10, 11 hay 12)? Bạn yêu thích môn học hoặc lĩnh vực nào nhất?",
+  "aiThinking": "AI Tư vấn đang soạn câu trả lời...",
+  "copiedToClipboard": "Đã chép nội dung vào bộ nhớ tạm!",
+  "subjectComboModalTitle": "📚 Tra Cứu Khối Thi THPT",
+  "riasecModalTitle": "🧩 Mô Hình Tính Cách Holland (RIASEC)",
+  "wasHelpful": "Câu trả lời này có hữu ích với bạn không?",
+  "followUpPrompt": "Gợi ý câu hỏi tiếp theo:",
+  "exploreSubjectCombos": "Khám phá khối thi",
+  "exploreRiasec": "Nhóm tính cách RIASEC"
 }
