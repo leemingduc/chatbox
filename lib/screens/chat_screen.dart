@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/chat_message.dart';
+import '../models/conversation.dart';
 import '../models/user_account.dart';
 import '../services/auth_service.dart';
+import '../services/conversation_storage.dart';
 import '../services/gemini_service.dart';
 import '../services/sound_service.dart';
 import 'login_screen.dart';
@@ -30,6 +32,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   bool _isTyping = false;
   late AnimationController _loadingAnimController;
+  final _conversationStorage = ConversationStorage();
+  List<Conversation> _conversations = [];
+  String? _activeConversationId;
 
   @override
   void initState() {
@@ -44,7 +49,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _addInitialGreeting();
+      _loadConversations();
     });
   }
 
@@ -54,6 +59,136 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadConversations() async {
+    final conversations = await _conversationStorage.load();
+    if (!mounted) return;
+    setState(() {
+      _conversations = conversations;
+      if (conversations.isNotEmpty) {
+        _activeConversationId = conversations.first.id;
+        _messages
+          ..clear()
+          ..addAll(conversations.first.messages);
+      }
+    });
+    if (conversations.isEmpty) _createNewConversation();
+  }
+
+  void _createNewConversation() {
+    final now = DateTime.now();
+    final conversation = Conversation(
+      id: now.microsecondsSinceEpoch.toString(),
+      title: widget.currentLocale.languageCode == 'vi'
+          ? 'Cuộc trò chuyện mới'
+          : 'New conversation',
+      createdAt: now,
+      updatedAt: now,
+      messages: const [],
+    );
+    setState(() {
+      _conversations = [conversation, ..._conversations];
+      _activeConversationId = conversation.id;
+      _messages.clear();
+    });
+    _addInitialGreeting();
+  }
+
+  void _selectConversation(Conversation conversation) {
+    setState(() {
+      _activeConversationId = conversation.id;
+      _messages
+        ..clear()
+        ..addAll(conversation.messages);
+    });
+    _scrollToBottom();
+  }
+
+  String _conversationTitle() {
+    for (final message in _messages) {
+      if (message.isUser) {
+        final text = message.text.trim();
+        return text.length > 42 ? '${text.substring(0, 42)}…' : text;
+      }
+    }
+    return widget.currentLocale.languageCode == 'vi'
+        ? 'Cuộc trò chuyện mới'
+        : 'New conversation';
+  }
+
+  Future<void> _persistActiveConversation() async {
+    final id = _activeConversationId;
+    if (id == null) return;
+    final current = _conversations.firstWhere(
+      (conversation) => conversation.id == id,
+    );
+    final updated = current.copyWith(
+      title: _conversationTitle(),
+      updatedAt: DateTime.now(),
+      messages: List<ChatMessage>.from(_messages),
+    );
+    _conversations = [
+      updated,
+      ..._conversations.where((conversation) => conversation.id != id),
+    ];
+    await _conversationStorage.save(_conversations);
+  }
+
+  void _showConversationHistory() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add_comment_outlined),
+              title: Text(
+                widget.currentLocale.languageCode == 'vi'
+                    ? 'Cuộc trò chuyện mới'
+                    : 'New conversation',
+              ),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _createNewConversation();
+              },
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _conversations.length,
+                itemBuilder: (context, index) {
+                  final conversation = _conversations[index];
+                  return ListTile(
+                    leading: Icon(
+                      conversation.id == _activeConversationId
+                          ? Icons.chat_bubble
+                          : Icons.chat_bubble_outline,
+                    ),
+                    title: Text(
+                      conversation.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      '${conversation.messages.length} ${widget.currentLocale.languageCode == 'vi' ? 'tin nhắn' : 'messages'}',
+                    ),
+                    selected: conversation.id == _activeConversationId,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _selectConversation(conversation);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _addInitialGreeting() {
@@ -70,17 +205,18 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 ? [
                     "🔬 Tư vấn khối ngành STEM & Công nghệ",
                     "🧩 Làm trắc nghiệm Holland RIASEC",
-                    "📚 Tư vấn chọn khối thi (A00, D01...)"
+                    "📚 Tư vấn chọn khối thi (A00, D01...)",
                   ]
                 : [
                     "🔬 STEM & Computer Science Majors",
                     "🧩 Holland RIASEC Personality Test",
-                    "📚 Subject Combinations (A00, D01...)"
+                    "📚 Subject Combinations (A00, D01...)",
                   ],
           ),
         );
       });
     }
+    _persistActiveConversation();
   }
 
   void _sendMessage(String text) {
@@ -97,6 +233,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       _messages.add(userMsg);
       _isTyping = true;
     });
+
+    _persistActiveConversation();
 
     // Play send sound effect
     SoundService.playSend();
@@ -127,6 +265,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         );
         _isTyping = false;
       });
+      _persistActiveConversation();
+
       // Play receive sound effect
       SoundService.playReceive();
       _scrollToBottom();
@@ -146,10 +286,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _clearChat() {
-    setState(() {
-      _messages.clear();
-      _addInitialGreeting();
-    });
+    _createNewConversation();
   }
 
   void _copyToClipboard(String text) {
@@ -159,7 +296,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const Icon(
+              Icons.check_circle_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Text(l10n.copiedToClipboard),
           ],
@@ -177,20 +318,68 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     final combos = isVi
         ? [
-            {"code": "A00", "subjects": "Toán, Lý, Hóa", "major": "IT, Bách Khoa, Kỹ thuật"},
-            {"code": "A01", "subjects": "Toán, Lý, Tiếng Anh", "major": "Tự động hóa, QTKD, Kinh tế"},
-            {"code": "B00", "subjects": "Toán, Hóa, Sinh", "major": "Y Đa khoa, Dược học, Biotech"},
-            {"code": "C00", "subjects": "Văn, Sử, Địa", "major": "Luật, Báo chí, Báo chí, Tâm lý"},
-            {"code": "D01", "subjects": "Toán, Văn, Tiếng Anh", "major": "Marketing, Ngôn ngữ, Du lịch"},
-            {"code": "D07", "subjects": "Toán, Hóa, Tiếng Anh", "major": "Hóa dược, Ngân hàng, QTKD"},
+            {
+              "code": "A00",
+              "subjects": "Toán, Lý, Hóa",
+              "major": "IT, Bách Khoa, Kỹ thuật",
+            },
+            {
+              "code": "A01",
+              "subjects": "Toán, Lý, Tiếng Anh",
+              "major": "Tự động hóa, QTKD, Kinh tế",
+            },
+            {
+              "code": "B00",
+              "subjects": "Toán, Hóa, Sinh",
+              "major": "Y Đa khoa, Dược học, Biotech",
+            },
+            {
+              "code": "C00",
+              "subjects": "Văn, Sử, Địa",
+              "major": "Luật, Báo chí, Báo chí, Tâm lý",
+            },
+            {
+              "code": "D01",
+              "subjects": "Toán, Văn, Tiếng Anh",
+              "major": "Marketing, Ngôn ngữ, Du lịch",
+            },
+            {
+              "code": "D07",
+              "subjects": "Toán, Hóa, Tiếng Anh",
+              "major": "Hóa dược, Ngân hàng, QTKD",
+            },
           ]
         : [
-            {"code": "A00", "subjects": "Math, Physics, Chemistry", "major": "IT, Engineering, Tech"},
-            {"code": "A01", "subjects": "Math, Physics, English", "major": "Automation, Business, Econ"},
-            {"code": "B00", "subjects": "Math, Chemistry, Biology", "major": "Medicine, Pharmacy, Biotech"},
-            {"code": "C00", "subjects": "Lit, History, Geo", "major": "Law, Journalism, Psychology"},
-            {"code": "D01", "subjects": "Math, Lit, English", "major": "Marketing, Languages, Tourism"},
-            {"code": "D07", "subjects": "Math, Chem, English", "major": "Fintech, Pharmacy, Business"},
+            {
+              "code": "A00",
+              "subjects": "Math, Physics, Chemistry",
+              "major": "IT, Engineering, Tech",
+            },
+            {
+              "code": "A01",
+              "subjects": "Math, Physics, English",
+              "major": "Automation, Business, Econ",
+            },
+            {
+              "code": "B00",
+              "subjects": "Math, Chemistry, Biology",
+              "major": "Medicine, Pharmacy, Biotech",
+            },
+            {
+              "code": "C00",
+              "subjects": "Lit, History, Geo",
+              "major": "Law, Journalism, Psychology",
+            },
+            {
+              "code": "D01",
+              "subjects": "Math, Lit, English",
+              "major": "Marketing, Languages, Tourism",
+            },
+            {
+              "code": "D07",
+              "subjects": "Math, Chem, English",
+              "major": "Fintech, Pharmacy, Business",
+            },
           ];
 
     showModalBottomSheet(
@@ -210,7 +399,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 children: [
                   Text(
                     l10n.subjectComboModalTitle,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
@@ -222,27 +414,39 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               Expanded(
                 child: ListView.separated(
                   itemCount: combos.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 8),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final item = combos[index];
                     return Card(
                       elevation: 0,
                       color: const Color(0xFF4F46E5).withValues(alpha: 0.06),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: const Color(0xFF4F46E5),
                           child: Text(
                             item["code"]!,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
-                        title: Text(item["subjects"]!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(
+                          item["subjects"]!,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         subtitle: Text(item["major"]!),
                         trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () {
                           Navigator.pop(context);
-                          _sendMessage("Tell me about subject combo ${item["code"]}");
+                          _sendMessage(
+                            "Tell me about subject combo ${item["code"]}",
+                          );
                         },
                       ),
                     );
@@ -257,21 +461,29 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _showAccountDialog() {
-    final user = widget.currentUser ?? AuthService().currentUser ?? UserAccount.guest();
+    final user =
+        widget.currentUser ?? AuthService().currentUser ?? UserAccount.guest();
     final isVi = widget.currentLocale.languageCode == 'vi';
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
               CircleAvatar(
-                backgroundColor: user.isGuest ? const Color(0xFF10B981) : const Color(0xFF4F46E5),
+                backgroundColor: user.isGuest
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFF4F46E5),
                 child: Text(
                   user.isGuest ? '👤' : user.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -281,10 +493,16 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   children: [
                     Text(
                       user.name,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: user.isGuest
                             ? const Color(0xFF10B981).withValues(alpha: 0.15)
@@ -294,11 +512,15 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       child: Text(
                         user.isGuest
                             ? (isVi ? 'Tài khoản Khách' : 'Guest Account')
-                            : (isVi ? 'Tài khoản Chính thức' : 'Registered Account'),
+                            : (isVi
+                                  ? 'Tài khoản Chính thức'
+                                  : 'Registered Account'),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: user.isGuest ? const Color(0xFF10B981) : const Color(0xFF4F46E5),
+                          color: user.isGuest
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF4F46E5),
                         ),
                       ),
                     ),
@@ -346,7 +568,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   Navigator.pop(context);
                   _logoutAndGoToLogin();
                 },
-                icon: const Icon(Icons.upgrade_rounded, color: Color(0xFF4F46E5)),
+                icon: const Icon(
+                  Icons.upgrade_rounded,
+                  color: Color(0xFF4F46E5),
+                ),
                 label: Text(
                   isVi ? 'Đăng nhập tài khoản chính' : 'Upgrade Account',
                   style: const TextStyle(fontWeight: FontWeight.bold),
@@ -401,7 +626,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFF4F46E5),
+        backgroundColor: isDark
+            ? const Color(0xFF0F172A)
+            : const Color(0xFF4F46E5),
         title: Row(
           children: [
             Container(
@@ -410,7 +637,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.school_rounded, color: Colors.white, size: 22),
+              child: const Icon(
+                Icons.school_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -431,13 +662,17 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         width: 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: GeminiService.isApiKeyConfigured ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                          color: GeminiService.isApiKeyConfigured
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFFF59E0B),
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        GeminiService.isApiKeyConfigured ? "Gemini 3.1 Flash Lite • Active" : l10n.onlineStatus,
+                        GeminiService.isApiKeyConfigured
+                            ? "Gemini 3.1 Flash Lite • Active"
+                            : l10n.onlineStatus,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 11,
@@ -461,25 +696,64 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               child: Text(
                 (widget.currentUser?.isGuest ?? true)
                     ? '👤'
-                    : (widget.currentUser?.name.substring(0, 1).toUpperCase() ?? 'U'),
+                    : (widget.currentUser?.name.substring(0, 1).toUpperCase() ??
+                          'U'),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: (widget.currentUser?.isGuest ?? true) ? Colors.white : const Color(0xFF4F46E5),
+                  color: (widget.currentUser?.isGuest ?? true)
+                      ? Colors.white
+                      : const Color(0xFF4F46E5),
                 ),
               ),
             ),
-            tooltip: widget.currentLocale.languageCode == 'vi' ? 'Thông tin tài khoản' : 'Account Info',
+            tooltip: widget.currentLocale.languageCode == 'vi'
+                ? 'Thông tin tài khoản'
+                : 'Account Info',
             onPressed: _showAccountDialog,
           ),
 
-          // Subject Combo Quick Modal Button
-          IconButton(
-            icon: const Icon(Icons.menu_book_rounded, color: Colors.white),
-            tooltip: l10n.exploreSubjectCombos,
-            onPressed: _showSubjectComboSheet,
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+            tooltip: widget.currentLocale.languageCode == 'vi'
+                ? 'Tùy chọn trò chuyện'
+                : 'Chat options',
+            onSelected: (value) {
+              switch (value) {
+                case 'history':
+                  _showConversationHistory();
+                case 'new':
+                  _createNewConversation();
+                case 'subjects':
+                  _showSubjectComboSheet();
+                case 'clear':
+                  _clearChat();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'new',
+                child: Text(
+                  widget.currentLocale.languageCode == 'vi'
+                      ? 'Cuộc trò chuyện mới'
+                      : 'New conversation',
+                ),
+              ),
+              PopupMenuItem(
+                value: 'history',
+                child: Text(
+                  widget.currentLocale.languageCode == 'vi'
+                      ? 'Lịch sử trò chuyện'
+                      : 'Conversation history',
+                ),
+              ),
+              PopupMenuItem(
+                value: 'subjects',
+                child: Text(l10n.exploreSubjectCombos),
+              ),
+              PopupMenuItem(value: 'clear', child: Text(l10n.clearChat)),
+            ],
           ),
-
           // Language Switcher
           PopupMenuButton<String>(
             icon: Container(
@@ -491,14 +765,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               child: Row(
                 children: [
                   Text(
-                    widget.currentLocale.languageCode == 'en' ? '🇺🇸 EN' : '🇻🇳 VI',
+                    widget.currentLocale.languageCode == 'en'
+                        ? '🇺🇸 EN'
+                        : '🇻🇳 VI',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
                   ),
-                  const Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
+                  const Icon(
+                    Icons.arrow_drop_down,
+                    color: Colors.white,
+                    size: 16,
+                  ),
                 ],
               ),
             ),
@@ -508,26 +788,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               const PopupMenuItem<String>(
                 value: 'vi',
-                child: Row(
-                  children: [
-                    Text('🇻🇳  Tiếng Việt'),
-                  ],
-                ),
+                child: Row(children: [Text('🇻🇳  Tiếng Việt')]),
               ),
               const PopupMenuItem<String>(
                 value: 'en',
-                child: Row(
-                  children: [
-                    Text('🇺🇸  English'),
-                  ],
-                ),
+                child: Row(children: [Text('🇺🇸  English')]),
               ),
             ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-            tooltip: l10n.clearChat,
-            onPressed: _clearChat,
           ),
           const SizedBox(width: 4),
         ],
@@ -546,11 +813,26 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _buildTopicChip(l10n.topicStem, () => _sendMessage("STEM & Tech majors")),
-                    _buildTopicChip(l10n.topicHolland, () => _sendMessage("Holland RIASEC test")),
-                    _buildTopicChip(l10n.topicSubjectCombo, () => _sendMessage("Subject combinations A00 D01 B00")),
-                    _buildTopicChip(l10n.topicBusiness, () => _sendMessage("Business and Marketing careers")),
-                    _buildTopicChip(l10n.topicArts, () => _sendMessage("Arts Design and Media majors")),
+                    _buildTopicChip(
+                      l10n.topicStem,
+                      () => _sendMessage("STEM & Tech majors"),
+                    ),
+                    _buildTopicChip(
+                      l10n.topicHolland,
+                      () => _sendMessage("Holland RIASEC test"),
+                    ),
+                    _buildTopicChip(
+                      l10n.topicSubjectCombo,
+                      () => _sendMessage("Subject combinations A00 D01 B00"),
+                    ),
+                    _buildTopicChip(
+                      l10n.topicBusiness,
+                      () => _sendMessage("Business and Marketing careers"),
+                    ),
+                    _buildTopicChip(
+                      l10n.topicArts,
+                      () => _sendMessage("Arts Design and Media majors"),
+                    ),
                   ],
                 ),
               ),
@@ -601,7 +883,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         decoration: InputDecoration(
                           hintText: l10n.typeMessageHint,
                           hintStyle: TextStyle(
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade500,
                             fontSize: 14,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
@@ -609,7 +893,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                             vertical: 12,
                           ),
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                          fillColor: isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF1F5F9),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(24),
                             borderSide: BorderSide.none,
@@ -623,8 +909,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       color: isSendEnabled
                           ? const Color(0xFF4F46E5)
                           : isDark
-                              ? const Color(0xFF334155)
-                              : Colors.grey.shade300,
+                          ? const Color(0xFF334155)
+                          : Colors.grey.shade300,
                       shape: const CircleBorder(),
                       elevation: isSendEnabled ? 2 : 0,
                       child: IconButton(
@@ -633,11 +919,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                           color: isSendEnabled
                               ? Colors.white
                               : isDark
-                                  ? Colors.grey.shade600
-                                  : Colors.grey.shade500,
+                              ? Colors.grey.shade600
+                              : Colors.grey.shade500,
                           size: 20,
                         ),
-                        onPressed: isSendEnabled ? () => _sendMessage(_controller.text) : null,
+                        onPressed: isSendEnabled
+                            ? () => _sendMessage(_controller.text)
+                            : null,
                       ),
                     ),
                   ],
@@ -714,42 +1002,58 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage msg, bool isDark, AppLocalizations l10n) {
+  Widget _buildMessageBubble(
+    ChatMessage msg,
+    bool isDark,
+    AppLocalizations l10n,
+  ) {
     final isUser = msg.isUser;
     final bubbleColor = isUser
         ? const Color(0xFF4F46E5)
         : isDark
-            ? const Color(0xFF1E293B)
-            : Colors.white;
+        ? const Color(0xFF1E293B)
+        : Colors.white;
 
     final textColor = isUser
         ? Colors.white
         : isDark
-            ? Colors.white
-            : const Color(0xFF1E293B);
+        ? Colors.white
+        : const Color(0xFF1E293B);
 
-    final timeStr = "${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}";
+    final timeStr =
+        "${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}";
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
-        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment: isUser
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!isUser) ...[
                 CircleAvatar(
                   radius: 16,
                   backgroundColor: const Color(0xFF4F46E5),
-                  child: const Icon(Icons.smart_toy_rounded, size: 18, color: Colors.white),
+                  child: const Icon(
+                    Icons.smart_toy_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 8),
               ],
               Flexible(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: bubbleColor,
                     borderRadius: BorderRadius.only(
@@ -818,7 +1122,12 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       // Bot Action Bar (Copy & Thumbs Rating)
                       if (!isUser) ...[
                         const SizedBox(height: 8),
-                        Divider(height: 1, color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                        Divider(
+                          height: 1,
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                        ),
                         const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -834,7 +1143,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                   child: Icon(
                                     Icons.thumb_up_alt_outlined,
                                     size: 16,
-                                    color: msg.isLiked == true ? Colors.green : Colors.grey.shade400,
+                                    color: msg.isLiked == true
+                                        ? Colors.green
+                                        : Colors.grey.shade400,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -847,7 +1158,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                   child: Icon(
                                     Icons.thumb_down_alt_outlined,
                                     size: 16,
-                                    color: msg.isLiked == false ? Colors.red : Colors.grey.shade400,
+                                    color: msg.isLiked == false
+                                        ? Colors.red
+                                        : Colors.grey.shade400,
                                   ),
                                 ),
                               ],
@@ -856,11 +1169,18 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                               onTap: () => _copyToClipboard(msg.text),
                               child: Row(
                                 children: [
-                                  Icon(Icons.copy_rounded, size: 14, color: Colors.grey.shade500),
+                                  Icon(
+                                    Icons.copy_rounded,
+                                    size: 14,
+                                    color: Colors.grey.shade500,
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
                                     "Copy",
-                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -877,14 +1197,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 CircleAvatar(
                   radius: 16,
                   backgroundColor: const Color(0xFF6366F1),
-                  child: const Icon(Icons.person_rounded, size: 18, color: Colors.white),
+                  child: const Icon(
+                    Icons.person_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ],
           ),
 
           // Follow-up suggestion chips rendered below Bot message
-          if (!isUser && msg.followUps != null && msg.followUps!.isNotEmpty) ...[
+          if (!isUser &&
+              msg.followUps != null &&
+              msg.followUps!.isNotEmpty) ...[
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.only(left: 40),
@@ -896,7 +1222,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade600,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -911,10 +1239,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                           prompt,
                           style: TextStyle(
                             fontSize: 11,
-                            color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                            color: isDark
+                                ? const Color(0xFFA5B4FC)
+                                : const Color(0xFF4F46E5),
                           ),
                         ),
-                        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        backgroundColor: isDark
+                            ? const Color(0xFF1E293B)
+                            : Colors.white,
                         side: BorderSide(
                           color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                         ),

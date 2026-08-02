@@ -19,6 +19,7 @@ class CareerGuidanceApp extends StatefulWidget {
 }
 
 class _CareerGuidanceAppState extends State<CareerGuidanceApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
   Locale _locale = const Locale('vi'); // Default language: Vietnamese
 
   void _setLocale(Locale locale) {
@@ -31,6 +32,7 @@ class _CareerGuidanceAppState extends State<CareerGuidanceApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Career Guidance Chatbox',
+      navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
       locale: _locale,
       supportedLocales: const [
@@ -68,7 +70,7 @@ class _CareerGuidanceAppState extends State<CareerGuidanceApp> {
           locale: _locale,
           onLanguageChanged: _setLocale,
           onLoginSuccess: (UserAccount user) {
-            Navigator.of(context).pushReplacement(
+            _navigatorKey.currentState?.pushReplacement(
               MaterialPageRoute(
                 builder: (context) => ChatScreen(
                   currentLocale: _locale,
