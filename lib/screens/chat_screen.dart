@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../services/gemini_service.dart';
+import '../services/sound_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final Locale currentLocale;
@@ -92,6 +93,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       _isTyping = true;
     });
 
+    // Play send sound effect
+    SoundService.playSend();
+
     _controller.clear();
     _scrollToBottom();
 
@@ -118,6 +122,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         );
         _isTyping = false;
       });
+      // Play receive sound effect
+      SoundService.playReceive();
       _scrollToBottom();
     });
   }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'screens/chat_screen.dart';
+import 'screens/splash_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
-import 'screens/chat_screen.dart';
 
 void main() {
   runApp(const CareerGuidanceApp());
@@ -55,9 +56,15 @@ class _CareerGuidanceAppState extends State<CareerGuidanceApp> {
         useMaterial3: true,
       ),
       themeMode: ThemeMode.system,
-      home: ChatScreen(
-        currentLocale: _locale,
+      // SplashScreen is the entry point; it transitions to ChatScreen
+      home: SplashScreen(
+        onComplete: () {},
+        locale: _locale,
         onLanguageChanged: _setLocale,
+        buildChatScreen: () => ChatScreen(
+          currentLocale: _locale,
+          onLanguageChanged: _setLocale,
+        ),
       ),
     );
   }
