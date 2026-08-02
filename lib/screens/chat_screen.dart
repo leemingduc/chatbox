@@ -637,10 +637,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.school_rounded,
-                color: Colors.white,
-                size: 22,
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/edupath_avatar.png',
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(width: 10),
