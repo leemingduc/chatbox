@@ -290,7 +290,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        GeminiService.isApiKeyConfigured ? "Gemini 1.5 Flash • Active" : l10n.onlineStatus,
+                        GeminiService.isApiKeyConfigured ? "Gemini 3.1 Flash Lite • Active" : l10n.onlineStatus,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 11,

@@ -6,7 +6,7 @@ Một ứng dụng Flutter hiện đại hỗ trợ tư vấn hướng nghiệp 
 
 ## 🌟 Tính Năng Nổi Bật (Features)
 
-- 🤖 **Google Gemini 1.5 Flash AI Chatbot**: Tích hợp SDK chính thức `google_generative_ai` với **System Prompt** đóng vai trò Tư vấn viên hướng nghiệp THPT.
+- 🤖 **Google Gemini 3.1 Flash Lite AI Chatbot**: Tích hợp SDK chính thức `google_generative_ai` với **System Prompt** đóng vai trò Tư vấn viên hướng nghiệp THPT.
 - 💬 **Lịch Sử Trò Chuyện Đa Lượt (Multi-turn History)**: AI nhớ ngữ cảnh cuộc trò chuyện (`user` và `model`), chủ động **hỏi ngược lại** về sở thích, môn thế mạnh và tính cách trước khi tư vấn ngành.
 - 🎯 **Gợi Ý Ngành & Khối Thi**: Đề xuất 2-3 ngành học phù hợp kèm lý do chi tiết và khối thi THPT tương ứng (A00, A01, B00, C00, D01, D07...).
 - 🔒 **Bảo Mật API Key & Xử Lý Lỗi**: Truyền API Key qua `--dart-define=GEMINI_API_KEY=...` không commit key; tự động fallback sang bộ tư vấn nội địa nếu mất kết nối hoặc hết quota, đảm bảo không crash ứng dụng.
@@ -73,8 +73,37 @@ chatbox/
 │   │   ├── career_bot_service.dart # Bộ tư vấn nội địa (Local Fallback)
 │   │   └── gemini_service.dart     # Tích hợp Google Gemini AI + System Prompt
 │   └── main.dart                # Main entry point & Cấu hình Locale
+├── .github/
+│   └── workflows/
+│       └── deploy.yml           # GitHub Actions tự động build & deploy GitHub Pages
 ├── l10n.yaml                    # Cấu hình Flutter Localization
 ├── pubspec.yaml                 # Dependencies (google_generative_ai)
 ├── .gitignore                   # Standard Flutter gitignore
 └── README.md                    # Tài liệu hướng dẫn dự án
 ```
+
+---
+
+## 🌐 4. Deploy lên GitHub Pages (GitHub Actions & GitHub CLI)
+
+### Bước 1: Cấp API Key bí mật bằng GitHub CLI (`gh secret set`)
+Chạy lệnh sau trên terminal để tạo Secret `GEMINI_API_KEY` cho GitHub Repository:
+```bash
+gh secret set GEMINI_API_KEY --body "YOUR_GEMINI_API_KEY"
+```
+
+### Bước 2: Push code & Tự động Build / Deploy
+Khi push code lên nhánh `main` hoặc `master`, GitHub Actions trong `.github/workflows/deploy.yml` sẽ tự động thực hiện:
+```bash
+flutter build web --release --base-href "/chatbox/" --dart-define=GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}"
+```
+
+### Bước 3: Theo dõi tiến trình bằng GitHub CLI (`gh run watch`)
+Chạy lệnh sau để theo dõi tiến trình chạy của workflow:
+```bash
+gh run watch
+```
+
+Sau khi workflow chạy xanh (xác nhận thành công từ `actions/deploy-pages`), ứng dụng sẽ khả dụng ngay tại địa chỉ:
+👉 **`https://leemingduc.github.io/chatbox/`**
+
