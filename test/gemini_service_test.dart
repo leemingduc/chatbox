@@ -1,8 +1,8 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:chatbox/services/gemini_service.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('GeminiService isApiKeyConfigured evaluates to true with default key', () {
-    expect(GeminiService.isApiKeyConfigured, isTrue);
+  test('GeminiService uses local fallback when no API key is configured', () {
+    expect(GeminiService.isApiKeyConfigured, isFalse);
   });
 }
